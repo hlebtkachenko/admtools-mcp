@@ -2,10 +2,10 @@ const DEFAULT_BASE_URL = "https://adm.tools/action";
 const TIMEOUT_MS = 30_000;
 const ACTION_RE = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*$/;
 
-export type ParamValue = string | number | boolean | null | undefined | ParamValue[] | { [key: string]: ParamValue };
+type ParamValue = string | number | boolean | null | undefined | ParamValue[] | { [key: string]: ParamValue };
 export type Params = Record<string, ParamValue>;
 
-export interface CallOptions {
+interface CallOptions {
   /** domain/check uses result:false for "not available", so it is not an error there. */
   allowFalseResult?: boolean;
   /** Read tool that shows whether a write landed; set for non-idempotent calls. */
@@ -13,7 +13,7 @@ export interface CallOptions {
 }
 
 /** Form-encodes like PHP http_build_query, which the official client uses. */
-export function encodeForm(params: Params): string {
+function encodeForm(params: Params): string {
   const out = new URLSearchParams();
   // fallow-ignore-next-line complexity -- one branch per http_build_query value kind (null, bool, nested, scalar)
   const add = (key: string, value: ParamValue) => {
