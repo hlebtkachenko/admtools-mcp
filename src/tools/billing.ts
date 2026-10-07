@@ -19,7 +19,8 @@ function parseParams(raw: string): Params {
 export function registerBillingTools(server: McpServer, adm: AdmClient, allowRaw: boolean) {
   server.tool("adm_balance", "Get current account balance", {}, { readOnlyHint: true }, async () => {
     try {
-      const { response } = await adm.call<{ balance: number }>("billing/balance_get");
+      const { response } = await adm.call<{ balance?: number | string }>("billing/balance_get");
+      if (response?.balance == null) throw new Error(`billing/balance_get: no balance in response: ${JSON.stringify(response)}`);
       return textResult(`# Account Balance\n\n**${response.balance} UAH**`);
     } catch (err) {
       return errorResult(err);

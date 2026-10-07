@@ -240,3 +240,9 @@ test("a dropped connection on a write reports outcome unknown with the read tool
   assert.equal(r.isError, true);
   assert.match(text(r), /outcome unknown.*adm_dns_records/i);
 });
+
+test("adm_balance without a balance field is an error, not 'undefined UAH'", async () => {
+  nextReply = { body: { result: true, response: {} } };
+  const r = await call("adm_balance");
+  assert.equal(r.isError, true, text(r));
+});
