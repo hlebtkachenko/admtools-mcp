@@ -18,12 +18,12 @@ function env(name: string): string {
   return val;
 }
 
-const client = new AdmClient(env("ADMTOOLS_API_TOKEN"));
+const client = new AdmClient(env("ADMTOOLS_API_TOKEN"), process.env.ADMTOOLS_API_URL || undefined);
 const server = new McpServer({ name: "admtools", version: pkg.version });
 
 registerDomainTools(server, client);
 registerDnsTools(server, client);
-registerBillingTools(server, client);
+registerBillingTools(server, client, process.env.ADM_ALLOW_RAW === "true");
 registerMailTools(server, client);
 
 await server.connect(new StdioServerTransport());

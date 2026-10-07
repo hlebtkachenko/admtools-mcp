@@ -20,14 +20,24 @@ interface Mailbox {
   domain: string;
 }
 
-export function registerMailTools(server: McpServer, adm: AdmClient) {
-  server.tool("adm_mail_domains", "List all mail domains on your account", {}, async () => {
-    try {
-      const { response } = await adm.call<MailDomain[]>("mail/list");
-      if (!response?.length) return textResult("No mail domains.");
+/** Verified list endpoints return { list }; mail/list is unverified, so accept a bare array too. */
+function listOf<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response as T[];
+  const list = (response as { list?: unknown } | null)?.list;
+  if (Array.isArray(list)) return list as T[];
+  if (list && typeof list === "object") return Object.values(list) as T[];
+  throw new Error(`Unexpected response shape: ${JSON.stringify(response).slice(0, 200)}`);
+}
 
-      const lines = [`# Mail Domains (${response.length})`, ""];
-      for (const d of response) lines.push(`- **${d.domain}** (mail_id: ${d.id})`);
+export function registerMailTools(server: McpServer, adm: AdmClient) {
+  server.tool("adm_mail_domains", "List all mail domains on your account", {}, { readOnlyHint: true }, async () => {
+    try {
+      const { response } = await adm.call("mail/list");
+      const domains = listOf<MailDomain>(response);
+      if (!domains.length) return textResult("No mail domains.");
+
+      const lines = [`# Mail Domains (${domains.length})`, ""];
+      for (const d of domains) lines.push(`- **${d.domain}** (mail_id: ${d.id})`);
       return textResult(lines.join("\n"));
     } catch (err) {
       return errorResult(err);
@@ -38,11 +48,12 @@ export function registerMailTools(server: McpServer, adm: AdmClient) {
     "adm_mailboxes",
     "List all mailboxes/redirects for a mail domain",
     { mail_id: z.number().describe("Mail domain ID (from adm_mail_domains)") },
+    { readOnlyHint: true },
     async ({ mail_id }) => {
       try {
-        const { response } = await adm.call<{ list: Mailbox[] }>("mail/box/list", { mail_id });
-        const boxes = response.list;
-        if (!boxes?.length) return textResult("No mailboxes.");
+        const { response } = await adm.call("mail/box/list", { mail_id });
+        const boxes = listOf<Mailbox>(response);
+        if (!boxes.length) return textResult("No mailboxes.");
 
         const lines = [`# Mailboxes (${boxes.length})`, ""];
         for (const b of boxes) {
@@ -63,9 +74,10 @@ export function registerMailTools(server: McpServer, adm: AdmClient) {
     "adm_mailbox_delete",
     "Delete a mailbox (careful!)",
     { mail_box_id: z.number().describe("Mailbox ID (from adm_mailboxes)") },
+    { destructiveHint: true, idempotentHint: true },
     async ({ mail_box_id }) => {
       try {
-        await adm.call("mail/box/delete", { mail_box_id });
+        await adm.call("mail/box/delete", { mail_box_id }, { verifyWith: "adm_mailboxes" });
         return textResult(`Mailbox ${mail_box_id} deleted.`);
       } catch (err) {
         return errorResult(err);

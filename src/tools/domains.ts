@@ -21,7 +21,7 @@ interface ZoneInfo {
 }
 
 export function registerDomainTools(server: McpServer, adm: AdmClient) {
-  server.tool("adm_domains", "List all domains in your account", {}, async () => {
+  server.tool("adm_domains", "List all domains in your account", {}, { readOnlyHint: true }, async () => {
     try {
       const { response } = await adm.call<{ list: Record<string, DomainInfo> }>("dns/list");
       const domains = response.list;
@@ -54,9 +54,10 @@ export function registerDomainTools(server: McpServer, adm: AdmClient) {
     "adm_domain_check",
     "Check if a domain name is available for registration",
     { domain: z.string().describe("Domain to check (e.g. example.com.ua)") },
+    { readOnlyHint: true },
     async ({ domain }) => {
       try {
-        const { result, response } = await adm.call<Record<string, unknown>>("domain/check", { domain });
+        const { result, response } = await adm.call<Record<string, unknown>>("domain/check", { domain }, { allowFalseResult: true });
         const lines = [`# Domain check: ${domain}`, `- Available: ${result ? "YES" : "NO"}`];
         if (response && typeof response === "object") {
           for (const [k, v] of Object.entries(response)) {
@@ -70,7 +71,7 @@ export function registerDomainTools(server: McpServer, adm: AdmClient) {
     },
   );
 
-  server.tool("adm_domain_zones", "List available domain zones with prices", {}, async () => {
+  server.tool("adm_domain_zones", "List available domain zones with prices", {}, { readOnlyHint: true }, async () => {
     try {
       const { response } = await adm.call<{ list: ZoneInfo[] }>("domain/zones");
       const zones = response.list;
@@ -91,9 +92,10 @@ export function registerDomainTools(server: McpServer, adm: AdmClient) {
     "adm_domain_add",
     "Add a domain to NS servers (for DNS management)",
     { domain_name: z.string().describe("Domain name to add") },
+    { destructiveHint: false, idempotentHint: false },
     async ({ domain_name }) => {
       try {
-        const { response } = await adm.call<{ domain_id: number }>("dns/add_foreign_domain", { domain_name });
+        const { response } = await adm.call<{ domain_id: number }>("dns/add_foreign_domain", { domain_name }, { verifyWith: "adm_domains" });
         return textResult(`Domain added. ID: ${response.domain_id}`);
       } catch (err) {
         return errorResult(err);
@@ -108,6 +110,7 @@ export function registerDomainTools(server: McpServer, adm: AdmClient) {
       type: z.string().describe("Object type (e.g. domain, hosting)"),
       name: z.string().describe("Object name"),
     },
+    { readOnlyHint: true },
     async ({ type, name }) => {
       try {
         const { response } = await adm.call<Record<string, unknown>>("get_id", { type, name });
