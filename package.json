@@ -1,6 +1,6 @@
 {
   "name": "admtools-mcp",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "MCP server for admtools (ukraine.com.ua / hosting.xyz) — domains, DNS, email, billing",
   "type": "module",
   "main": "dist/index.js",

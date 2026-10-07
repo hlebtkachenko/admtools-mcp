@@ -1,16 +1,16 @@
 # [adm.tools](https://adm.tools) (service from [hosting.xyz](https://hosting.xyz) / [ukraine.com.ua](https://ukraine.com.ua)) MCP Server
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Node.js Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Node.js Version](https://img.shields.io/badge/node-%3E%3D22-brightgreen)
+![TypeScript](https://img.shields.io/badge/TypeScript-7-blue)
 
 MCP server for [adm.tools](https://adm.tools) — the management panel behind [ukraine.com.ua](https://ukraine.com.ua) and [hosting.xyz](https://hosting.xyz) hosting platforms. Manage domains, DNS records, email, and billing from any MCP-compatible client.
 
-13 tools for the adm.tools API.
+12 tools for the adm.tools API, plus `adm_api_raw` when `ADM_ALLOW_RAW=true`.
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22+
 - adm.tools API token (activate at [adm.tools/user/api](https://adm.tools/user/api/))
 
 ## Installation
@@ -93,6 +93,8 @@ With the `ADMTOOLS_API_TOKEN` environment variable set.
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ADMTOOLS_API_TOKEN` | Yes | Bearer token from [adm.tools API settings](https://adm.tools/user/api/) |
+| `ADM_ALLOW_RAW` | No | Set to `true` to register `adm_api_raw` (any API action with the account-wide token) |
+| `ADMTOOLS_API_URL` | No | API base URL, default `https://adm.tools/action` (tests point it at a fake server) |
 
 ## Tools
 
@@ -111,7 +113,7 @@ With the `ADMTOOLS_API_TOKEN` environment variable set.
 | Tool | Description |
 |------|-------------|
 | `adm_dns_records` | List DNS records for a domain |
-| `adm_dns_add` | Add record (A, AAAA, ALIAS, CAA, CNAME, MX, NS, TXT, SRV) |
+| `adm_dns_add` | Add record (A, AAAA, ALIAS, CAA, CNAME, MX, NS, TXT) |
 | `adm_dns_delete` | Delete a DNS record |
 
 ### Email
@@ -132,27 +134,30 @@ With the `ADMTOOLS_API_TOKEN` environment variable set.
 
 | Tool | Description |
 |------|-------------|
-| `adm_api_raw` | Call any adm.tools API endpoint directly |
+| `adm_api_raw` | Call any adm.tools API action directly. Registered only with `ADM_ALLOW_RAW=true`; marked destructive |
+
+The `mail/*` endpoints are not in the official client, so their parameter names (`mail_id`, `mail_box_id`) are unverified.
 
 ## Security
 
-- 30-second timeout on all HTTP requests
-- API action path sanitized (leading/trailing slashes stripped)
-- JSON parameters parsed in try/catch
-- Error responses truncated to 500 characters
-- All parameters validated with Zod schemas
+- 30-second timeout on all HTTP requests; no automatic retries. A write that gets no response is reported as "outcome unknown" with the read tool to check
+- Any response with `result` false or missing is returned as an error (except `adm_domain_check`, where false means "not available")
+- Action paths must be `/`-separated segments of letters, digits, `_` and `-`; `..`, query strings and empty paths are rejected
+- `adm_api_raw` is off unless `ADM_ALLOW_RAW=true`; its `params` must be a JSON object
+- Tool arguments are validated with Zod schemas; `adm_api_raw` params are free-form
 
 ## Architecture
 
 ```
 src/
   index.ts          Entry point, env validation
-  adm-client.ts     API client (Bearer token, form-encoded POST)
+  adm-client.ts     API client (Bearer auth, form-encoded POST, result check)
   tools/
     domains.ts      Domain management (5 tools)
     dns.ts          DNS records (3 tools)
     mail.ts         Email management (3 tools)
-    billing.ts      Balance and raw API (2 tools)
+    billing.ts      Balance, plus raw API when enabled (1-2 tools)
+test/               node:test suite against a fake adm.tools API
 ```
 
 ## Tech Stack
