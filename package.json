@@ -7,15 +7,16 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "tsc && node --test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.0",
-    "zod": "^3.23.0"
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
   },
   "author": "Hleb Tkachenko",
   "repository": {
@@ -27,7 +28,15 @@
     "url": "https://github.com/hlebtkachenko/admtools-mcp/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "keywords": ["mcp", "mcp-server", "adm-tools", "domains", "dns", "hosting", "typescript"]
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "adm-tools",
+    "domains",
+    "dns",
+    "hosting",
+    "typescript"
+  ]
 }
